@@ -1,2 +1,71 @@
-# previsao_demanda_grupo_bimbo
-O objetivo deste projeto é prever a demanda de produtos do Grupo Bimbo, em uma dada semana e loja.
+#Previsão de demanda - Grupo Bimbo
+
+##Introdução
+
+O objetivo deste projeto é prever a demanda de produtos do Grupo Bimbo, em uma dada semana e loja. Para contextualização, o Grupo Bimbo é uma das maiores empresas de panificação do mundo, líder de mercado no México e na América Latina, e tem sua sede na Cidade do México.
+
+O dataset contém dados de 9 semanas de transações de vendas no México, contendo as informações sobre os produtos entregues aos pontos de venda e as devoluções dos produtos que venceram nas prateleiras. A demanda de determinado produto em uma semana é definida como a diferença entre as vendas nesta semana e as devoluções da semana subsequente.
+
+###Dicionário de dados:
+
+Os datasets de treino e teste são divididos com base no tempo e estão disponíveis para download em: https://www.kaggle.com/c/grupo-bimbo-inventory-demand. Por razões de economia de espaço armazenado não serão replicados os datasets neste repositório.
+
+Observações:
+
+Há produtos no dataset de teste que não existem no dataset de treino. Este comportamento não está de acordo com o esperado com dados de demanda, uma vez que novos produtos são inseridos frequentemente. O modelo a ser construído deverá contornar este fato.
+Há múltiplos dados com a mesma chave Cliente_ID na tabela cliente_tabla, o que significa que uma chave pode ter múltiplos nomes (NombreCliente) similares. Isto se deve ao fato de que o atributo NombreCliente não é padronizado, tendo ficado com a informação um pouco "ruidosa" nos dados brutos.
+
+A demanda ajustada (Demanda_uni_equil) é sempre maior ou igual a 0, uma vez que que a demanda deve ser 0 ou um valore positivo. A razão pela qual Venta_uni_hoy e Dev_uni_proxima possuem às vezes valores negativos se deve ao fato de os registros de devoluções se acumularem por algumas semanas.
+
+Descrição dos arquivos
+train.csv — dataset de treino
+test.csv — dataset de teste
+sample_submission.csv — arquivo de submissão ao Kaggle no formato correto
+cliente_tabla.csv — Nomes dos clientes (podem ser agregados aos dados de treino/teste pelo Cliente_ID)
+producto_tabla.csv — Nomes dos produtos (podem ser agregados aos dados de treino/teste pelo Producto_ID)
+town_state.csv — Cidade e estado (podem ser agregados aos dados de treino/teste pelo Agencia_ID)
+
+Campos de dados
+Semana — Número da semana (De quinta-feira a quarta-feira)
+Agencia_ID — ID do depósito de vendas
+Canal_ID — ID do canal de vendas
+Ruta_SAK — ID da rota (Um depósito de vendas atende várias rotas)
+Cliente_ID — ID do cliente
+NombreCliente — Nome do cliente
+Producto_ID — ID do produto
+NombreProducto — Nome do produto
+Venta_uni_hoy — Unidades vendidas nesta semana (integer)
+Venta_hoy — Valor vendido nesta semana (unit: pesos)
+Dev_uni_proxima — Unidades devolvidas na semana seguinte (integer)
+Dev_proxima — Valor devolvido na semana seguinte (unit: pesos)
+Demanda_uni_equil — Demanda ajustada em unidades (integer) (Esta é a variável target da predição)
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Análise exploratória de dados
+Dataset não possui valores missing. Nota-se numa primeira inspeção que as variáveis Venta_uni_hoy Venta_hoy Dev_uni_proxima Dev_proxima não se encontram presentes no dataset de treinamento.
+Graficamente não foi possível identificar nenhuma forte correlação entre as variáveis preditoras e a variável target.
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
