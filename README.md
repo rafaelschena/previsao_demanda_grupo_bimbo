@@ -299,4 +299,3 @@ Para ilustrar a influência dos *outliers* na correlação entre os dados, foram
 ![Figura 12 - Boxplot sem os outliers](img/Boxplot_sem_outliers.png)
 ![Figura 13 - Gráfico de correlação com método Pearson sem outliers](img/corr_1_sem_outliers.png)![Figura 14 - Gráfico de correlação com método Spearman sem outliers](img/corr_2_sem_outliers.png)
 
-teste
