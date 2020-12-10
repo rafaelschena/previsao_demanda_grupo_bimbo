@@ -8,11 +8,11 @@ O dataset contém dados de 9 semanas de transações de vendas no México, conte
 
 ###Dicionário de dados:
 
-Os datasets de treino e teste são divididos com base no tempo e estão disponíveis para download em: https://www.kaggle.com/c/grupo-bimbo-inventory-demand. Por razões de economia de espaço armazenado não serão replicados os datasets neste repositório.
+Os datasets de treino e teste são divididos com base no tempo e estão disponíveis para download em: https://www.kaggle.com/c/grupo-bimbo-inventory-demand. Por razões de economia de espaço armazenado não serão replicados os *datasets* neste repositório.
 
 Observações:
 
-Há produtos no dataset de teste que não existem no dataset de treino. Este comportamento não está de acordo com o esperado com dados de demanda, uma vez que novos produtos são inseridos frequentemente. O modelo a ser construído deverá contornar este fato.
+Há produtos no *dataset* de teste que não existem no dataset de treino. Este comportamento não está de acordo com o esperado com dados de demanda, uma vez que novos produtos são inseridos frequentemente. O modelo a ser construído deverá contornar este fato.
 Há múltiplos dados com a mesma chave Cliente_ID na tabela cliente_tabla, o que significa que uma chave pode ter múltiplos nomes (NombreCliente) similares. Isto se deve ao fato de que o atributo NombreCliente não é padronizado, tendo ficado com a informação um pouco "ruidosa" nos dados brutos.
 
 A demanda ajustada (Demanda_uni_equil) é sempre maior ou igual a 0, uma vez que que a demanda deve ser 0 ou um valore positivo. A razão pela qual Venta_uni_hoy e Dev_uni_proxima possuem às vezes valores negativos se deve ao fato de os registros de devoluções se acumularem por algumas semanas.
@@ -42,30 +42,260 @@ Demanda_uni_equil — Demanda ajustada em unidades (integer) (Esta é a variáve
 
 
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ### Análise exploratória de dados
+
+```{r}
+##################################################################
+######### Projeto 2 - Previsão de demanda - Grupo Bimbo ##########
+##################################################################
+
+Azure <- FALSE
+
+if(!Azure){
+  
+  setwd("C:/DataScience/FCD/BigDataAnalytics-R-Azure/Projeto-2/previsao_demanda_grupo_bimbo/")
+  getwd()
+  
+}
+
+
+############################################################
+#### Carregamento de dados e bibliotecas ###################
+############################################################
+
+if(Azure){
+  
+  data <- maml.mapInputPort(1) # class: data.frame
+  test <- maml.mapInputPort(2) # class: data.frame
+  
+}else{
+  
+  library(readr)
+  data <- read_csv("dados/train_sample_v2.csv")
+  test <- read_csv("dados/test.csv")
+  
+  #cliente_tabla <- read_csv("dados/cliente_tabla.csv")
+  #producto_tabla <- read_csv("dados/producto_tabla.csv")
+  #town_state <- read_csv("dados/town_state.csv")
+  #sample_submission <- read_csv("dados/sample_submission.csv")
+}
+
+
+##############################################
+#### Análise Exploratória dos Dados ##########
+##############################################
+
+head(data)
+head(test)
+
+# Únicas variáveis preditoras no test set:
+# Semana, Agencia_ID, Canal_ID, Ruta_SAK, Cliente_ID, Producto_ID
+
+#str(data)
+summary(data)
+summary(test)
+
+# Verificando dados faltantes nos datasets
+
+conta_NA <- function(X){
+  return(sum(is.na(X)))
+}
+
+lapply(data, conta_NA)
+lapply(test, conta_NA) 
+
+# As variáveis Venta_uni_hoy Venta_hoy Dev_uni_proxima Dev_proxima não se encontram
+# presentes no dataset de treinamento, portanto serão excluídas.
+
+if(!Azure){
+  data$Venta_hoy <- NULL
+  data$Venta_uni_hoy <- NULL
+  data$Dev_proxima <- NULL
+  data$Dev_uni_proxima <- NULL
+}
+
+
+# Normalização dos dados do dataset data
+
+min_data <- lapply(data, min)
+max_data <- lapply(data, max)
+
+min_test <- lapply(test, min)
+max_test <- lapply(test, max)
+
+normalizar <- function(x, min, max){
+  return((x-min)/(max-min))
+}
+
+for(v in names(data)){
+  
+  if(v %in% names(test)){
+    min <- min(min_data[[v]], min_test[[v]])
+    max <- max(max_data[[v]], max_test[[v]])
+  }else{
+    min <- min_data[[v]]
+    max <- max_data[[v]]
+  }
+  
+  data[[v]] <- normalizar(data[[v]], min, max)
+  
+}
+
+# Normalização do dataset test
+# Não será feita a normalização do index, porque o index não é variável preditora.
+for(v in names(test)[-1]){
+  
+  if(v %in% names(data)){
+    min <- min(min_data[[v]], min_test[[v]])
+    max <- max(max_data[[v]], max_test[[v]])
+  }else{
+    min <- min_test[[v]]
+    max <- max_test[[v]]
+  }
+  
+  test[[v]] <- normalizar(test[[v]], min, max)
+  
+}
+
+################ Correlação ##########################
+
+# Métodos de Correlação
+# Pearson - coeficiente usado para medir o grau de relacionamento entre duas variáveis com relação linear
+# Spearman - teste não paramétrico, para medir o grau de relacionamento entre duas variaveis
+# Kendall - teste não paramétrico, para medir a força de dependência entre duas variaveis
+
+# Vetor com os métodos de correlação
+metodos <- c("pearson", "spearman")
+
+
+# Aplicando os métodos de correlação com a função cor()
+cors <- lapply(metodos, function(method) 
+  (cor(data, method = method)))
+
+head(cors)
+
+# Preprando o plot
+require(lattice)
+plot.cors <- function(x, labs){
+  diag(x) <- 0.0 
+  plot( levelplot(x, 
+                  main = paste("Plot de Correlação usando Metodo", labs,"com outliers"),
+                  scales = list(x = list(rot = 90), cex = 1.0)) )
+}
+
+# Mapa de Correlação
+Map(plot.cors, cors, metodos)
+
+
+################# Boxplots #############################
+
+
+boxplot(data, Demanda_uni_equil ~ ., col = "blue", main = "Boxplot com os outliers")
+
+
+################ Histogramas ###########################
+
+library(ggplot2)
+
+lapply(names(data), function(x){
+  ggplot(data, aes_string(x)) +
+    geom_histogram(bins = 30L, fill = "blue", alpha = 0.5) +
+    ggtitle(paste("Histograma de", x,"com outliers"))
+})
+
+
+############### Limpeza de outliers #####################
+
+#data_copia <- data
+
+#data <- data_copia
+
+
+for(v in names(data)){
+  
+  upper_bound <- median(data[[v]]) + 3*mad(data[[v]])
+  lower_bound <- median(data[[v]]) - 3*mad(data[[v]])
+  data <- subset(data, data[[v]] <= upper_bound & data[[v]] >= lower_bound)
+  print(v)
+  print(nrow(data)) 
+}
+
+summary(data)
+
+
+################ Histogramas ###########################
+
+lapply(names(data), function(x){
+  ggplot(data, aes_string(x)) +
+    geom_histogram(bins = 100L, fill = "green", alpha = 0.5) +
+    ggtitle(paste("Histograma de", x,"sem outliers"))
+})
+
+################# Boxplots #############################
+
+
+boxplot(data[, -1], Demanda_uni_equil ~ ., col = "green", main = "Boxplot sem os outliers")
+
+################ Nova Correlação ##########################
+
+# Métodos de Correlação
+# Pearson - coeficiente usado para medir o grau de relacionamento entre duas variáveis com relação linear
+# Spearman - teste não paramétrico, para medir o grau de relacionamento entre duas variaveis
+# Kendall - teste não paramétrico, para medir a força de dependência entre duas variaveis
+
+# Vetor com os métodos de correlação
+metodos <- c("pearson", "spearman")
+
+
+# Aplicando os métodos de correlação com a função cor()
+cors <- lapply(metodos, function(method) 
+  (cor(data, method = method)))
+
+head(cors)
+
+# Preprando o plot
+plot.cors <- function(x, labs){
+  diag(x) <- 0.0 
+  plot( levelplot(x, 
+                  main = paste("Plot de Correlação usando metodo", labs, "sem outliers"),
+                  scales = list(x = list(rot = 90), cex = 1.0)) )
+}
+
+# Mapa de Correlação
+Map(plot.cors, cors, metodos)
+
+############### Saída do bloco ########################
+
+if(Azure){
+  maml.mapOutputPort("data");
+}
+
+```
+Devido a restrições de processamento da máquina local, o dataset foi reduzido através de um *sampling* do dataset original, com o processamento sendo replicado paralelamente no Azure ML. O primeiro modelo construído, mostrado na figura 1 com modelos de regressão linear e rede neural apenas com uma normalização dos dados, mostrou um R² próximo a zero, demandando uma maior análise dos dados para melhoria do desempenho.
+![Figura 1 - Primeiro no Azure ML](img/modelo0_azure.JPG)
+
+
 Dataset não possui valores missing. Nota-se numa primeira inspeção que as variáveis Venta_uni_hoy Venta_hoy Dev_uni_proxima Dev_proxima não se encontram presentes no dataset de treinamento.
-Graficamente não foi possível identificar nenhuma forte correlação entre as variáveis preditoras e a variável target.
 
-## R Markdown
+Para avaliar correlação entre variáveis, nas figuras 2 e 3 foram gerados gráficos de correlação com os métodos *Spearman* e *Pearson*.
+![Figura 2 - Gráfico de correlação com método Pearson](img/corr_1_com_outliers.png)![Figura 3 - Gráfico de correlação com método Spearman](img/corr_2_com_outliers.png)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Graficamente não foi possível identificar nenhuma forte correlação entre as variáveis preditoras e a variável *target*.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Partiu-se, então, para uma análise mais detalhada dos dados. Primeiramente, foi gerado um *boxplot*, como mostrado na figura 4, sendo possível identificar uma grande quantidade de *outliers*.
+![Figura 4 - Boxplot](img/Boxplot_com_outliers.png)
 
-```{r cars}
-summary(cars)
-```
+A partir disso, foram gerados histogramas para avaliar a distribuição dos dados e a influência dos *outliers* na distribuição dos mesmos, mostrados nas figuras .
+![Figura 5 - Histograma de Semana](img/hist_semana_com_outliers.png)
+![Figura 6 - Histograma de Canal_ID](img/hist_Canal_ID_com_outliers.png)
+![Figura 7 - Histograma de Cliente_ID](img/hist_Cliente_ID_com_outliers.png)
+![Figura 8 - Histograma de Producto_ID](img/hist_Producto_ID_com_outliers.png)
+![Figura 9 - Histograma de Ruta_SAK](img/hist_Ruta_SAK_com_outliers.png)
+![Figura 10 - Histograma de Ruta_SAK](img/hist_Agencia_ID_com_outliers.png)
+![Figura 11 - Histograma de Demanda_uni_equil](img/hist_Demanda_uni_equil_com_outliers.png)
 
-## Including Plots
+Para ilustrar a influência dos *outliers* na correlação entre os dados, foram retirados os valores discrepantes da base de dados em todos os atributos do *dataset* e avaliados o *boxplot* e os gráficos de correlação com os mesmos utilizados anteriormente, conforme mostrado nas figuras 12, 13 e 14.
+![Figura 12 - Boxplot sem os outliers](img/Boxplot_sem_outliers.png)
+![Figura 13 - Gráfico de correlação com método Pearson sem outliers](img/corr_1_sem_outliers.png)![Figura 14 - Gráfico de correlação com método Spearman sem outliers](img/corr_2_sem_outliers.png)
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
