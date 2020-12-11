@@ -1,12 +1,12 @@
-#Previsão de demanda - Grupo Bimbo
+# Previsão de demanda - Grupo Bimbo
 
-##Introdução
+## Introdução
 
 O objetivo deste projeto é prever a demanda de produtos do Grupo Bimbo, em uma dada semana e loja. Para contextualização, o Grupo Bimbo é uma das maiores empresas de panificação do mundo, líder de mercado no México e na América Latina, e tem sua sede na Cidade do México.
 
 O dataset contém dados de 9 semanas de transações de vendas no México, contendo as informações sobre os produtos entregues aos pontos de venda e as devoluções dos produtos que venceram nas prateleiras. A demanda de determinado produto em uma semana é definida como a diferença entre as vendas nesta semana e as devoluções da semana subsequente.
 
-###Dicionário de dados:
+### Dicionário de dados:
 
 Os datasets de treino e teste são divididos com base no tempo e estão disponíveis para download em: https://www.kaggle.com/c/grupo-bimbo-inventory-demand. Por razões de economia de espaço armazenado não serão replicados os *datasets* neste repositório.
 
@@ -272,21 +272,21 @@ if(Azure){
 }
 
 ```
-Devido a restrições de processamento da máquina local, o dataset foi reduzido através de um *sampling* do dataset original, com o processamento sendo replicado paralelamente no Azure ML. O primeiro modelo construído, mostrado na figura 1 com modelos de regressão linear e rede neural apenas com uma normalização dos dados, mostrou um R² próximo a zero, demandando uma maior análise dos dados para melhoria do desempenho.
+Devido a restrições de processamento da máquina local, o dataset foi reduzido através de um *sampling* do dataset original, com o processamento sendo replicado paralelamente no Azure ML. O primeiro modelo construído, mostrado na figura a seguir com modelos de regressão linear e rede neural apenas com uma normalização dos dados, mostrou um coeficiente de determinação (R²) próximo a zero, demandando uma maior análise dos dados para melhoria do desempenho. Deste ponto em diante, foram realizados vários testes, tanto no pré-processamento dos dados e de algoritmos de regressão, sempre com vistas a melhorar o coeficiente de determinação.
 ![Figura 1 - Primeiro no Azure ML](img/modelo0_azure.JPG)
 
 
-Dataset não possui valores missing. Nota-se numa primeira inspeção que as variáveis Venta_uni_hoy Venta_hoy Dev_uni_proxima Dev_proxima não se encontram presentes no dataset de treinamento.
+Dataset não possui valores missing. Nota-se numa primeira inspeção que as variáveis Venta_uni_hoy Venta_hoy Dev_uni_proxima Dev_proxima não se encontram presentes no dataset de treinamento e não devem, portanto, integrar a base de treinamento.
 
-Para avaliar correlação entre variáveis, nas figuras 2 e 3 foram gerados gráficos de correlação com os métodos *Spearman* e *Pearson*.
+Para avaliar correlação entre variáveis, nas figuras abaixo foram gerados gráficos de correlação com os métodos *Spearman* e *Pearson*.
 ![Figura 2 - Gráfico de correlação com método Pearson](img/corr_1_com_outliers.png)![Figura 3 - Gráfico de correlação com método Spearman](img/corr_2_com_outliers.png)
 
 Graficamente não foi possível identificar nenhuma forte correlação entre as variáveis preditoras e a variável *target*.
 
-Partiu-se, então, para uma análise mais detalhada dos dados. Primeiramente, foi gerado um *boxplot*, como mostrado na figura 4, sendo possível identificar uma grande quantidade de *outliers*.
+Partiu-se, então, para uma análise mais detalhada dos dados. Primeiramente, foi gerado um *boxplot*, como mostrado abaixo, sendo possível identificar uma grande quantidade de *outliers*.
 ![Figura 4 - Boxplot](img/Boxplot_com_outliers.png)
 
-A partir disso, foram gerados histogramas para avaliar a distribuição dos dados e a influência dos *outliers* na distribuição dos mesmos, mostrados nas figuras .
+A partir disso, foram gerados histogramas para avaliar a distribuição dos dados e a influência dos *outliers* na distribuição dos mesmos, mostrados conforme se segue.
 ![Figura 5 - Histograma de Semana](img/hist_semana_com_outliers.png)
 ![Figura 6 - Histograma de Canal_ID](img/hist_Canal_ID_com_outliers.png)
 ![Figura 7 - Histograma de Cliente_ID](img/hist_Cliente_ID_com_outliers.png)
@@ -295,7 +295,27 @@ A partir disso, foram gerados histogramas para avaliar a distribuição dos dado
 ![Figura 10 - Histograma de Ruta_SAK](img/hist_Agencia_ID_com_outliers.png)
 ![Figura 11 - Histograma de Demanda_uni_equil](img/hist_Demanda_uni_equil_com_outliers.png)
 
-Para ilustrar a influência dos *outliers* na correlação entre os dados, foram retirados os valores discrepantes da base de dados em todos os atributos do *dataset* e avaliados o *boxplot* e os gráficos de correlação com os mesmos utilizados anteriormente, conforme mostrado nas figuras 12, 13 e 14.
+Para ilustrar a influência dos *outliers* na correlação entre os dados, foram retirados os valores discrepantes da base de dados em todos os atributos do *dataset* e avaliados o *boxplot* e os gráficos de correlação com os mesmos utilizados anteriormente, conforme mostrado nas figuras 12, 13 e 14. Percebe-se que o gráfico de correlação de Spearman para os dados sem outliers indica, por sua vez, que há uma correlação positiva mais forte entre a variável *target* e a variável Producto_ID, e uma correlação negativa mais forte com a variável Cliente_ID. Isto dá indícios que a relação entre os dados de entrada e de saída pode estar sendo mascarada pelos outliers. No entanto, o método utilizado para exclusão dos outliers eliminou 65% dos dados originais, o que compromete a análise pois os modelos perdem generalidade com esta menor variabilidade dos dados.
 ![Figura 12 - Boxplot sem os outliers](img/Boxplot_sem_outliers.png)
-![Figura 13 - Gráfico de correlação com método Pearson sem outliers](img/corr_1_sem_outliers.png)![Figura 14 - Gráfico de correlação com método Spearman sem outliers](img/corr_2_sem_outliers.png)
+![Figura 13 - Gráfico de correlação com método Pearson sem outliers](img/corr_1_sem_outliers.png)
+![Figura 14 - Gráfico de correlação com método Spearman sem outliers](img/corr_2_sem_outliers.png)
 
+Ainda com os *outliers* excluídos foram comparados 2 modelos de regressão para os dados: a regressão de Poisson e o algortimo de regressão *Boosted Decision Tree*. Os resultados podem ser vistos a seguir:
+![Figura 12 - Modelo1-AzureML](img/modelo1.0_azure.JPG)
+![Figura 13 - Modelo1-AzureML](img/modelo1.1_azure.JPG)
+![Figura 14 - Modelo1-AzureML](img/modelo1.2_azure_grif.JPG)
+
+Pode-se observar que o coeficiente de determinação R² aumentou para 0,284093, porém ainda é um número considerado baixo, de modo que o processo de *data munging* será continuado.
+
+Alternativamente, foi rodado novamente o experimento no AzureML com um *feature selection* das 4 variáveis mais importantes sem a exclusão dos *outliers*, conforme mostrado abaixo, de onde se pode ver que houve um aumento do R².
+![Figura 15 - Modelo2-AzureML](img/modelo2.0_azure_grif.JPG)
+![Figura 16 - Modelo2-AzureML](img/modelo2.1_azure_grif.JPG)
+
+Também foi refeito o mesmo experimento com a exclusão apenas dos *ouliers* da variável target, eliminando aproximadamente 13% dos dados de treinamento, o que causou uma diminuição do coeficiente de determinação, conforme mostrado a seguir:
+![Figura 17 - Modelo3-AzureML](img/modelo3.0_azure.JPG)
+![Figura 18 - Modelo3-AzureML](img/modelo3.1_azure_grif.JPG)
+Ou seja, mesmo com uma exclusão de um número menor de dados *outliers*, houve uma perda na capacidade de generalização do modelo gerado.
+
+Após isso, dado o resultado do último experimento, resolveu-se testar o desempenho sem retirada dos *outliers* e também sem a normalização. A resultado é mostrado abaixo:
+![Figura 19 - Modelo4-AzureML](img/modelo4.0_azure.JPG)
+![Figura 20 - Modelo4-AzureML](img/modelo4.1_azure_grif.JPG)

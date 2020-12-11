@@ -164,14 +164,23 @@ lapply(names(data), function(x){
 #data <- data_copia
 
 
-for(v in names(data)){
+# Elimina outliers apenas da variável de saída (elimina 13% dos dados de treinamento)
+v <- "Demanda_uni_equil"
+data[[v]]
+upper_bound <- median(data[[v]]) + 3*mad(data[[v]])
+lower_bound <- median(data[[v]]) - 3*mad(data[[v]])
+data <- subset(data, data[[v]] <= upper_bound & data[[v]] >= lower_bound)
+
+
+# Elimina outliers de todas as variáveis (elimina 65% dos dados de treinamento)
+#for(v in names(data)){
   
-  upper_bound <- median(data[[v]]) + 3*mad(data[[v]])
-  lower_bound <- median(data[[v]]) - 3*mad(data[[v]])
-  data <- subset(data, data[[v]] <= upper_bound & data[[v]] >= lower_bound)
-  print(v)
-  print(nrow(data)) 
-}
+#  upper_bound <- median(data[[v]]) + 3*mad(data[[v]])
+#  lower_bound <- median(data[[v]]) - 3*mad(data[[v]])
+#  data <- subset(data, data[[v]] <= upper_bound & data[[v]] >= lower_bound)
+#  print(v)
+#  print(nrow(data)) 
+#}
 
 summary(data)
 
@@ -187,7 +196,7 @@ lapply(names(data), function(x){
 ################# Boxplots #############################
 
 
-boxplot(data[, -1], Demanda_uni_equil ~ ., col = "green", main = "Boxplot sem os outliers")
+boxplot(data[, -1], Demanda_uni_equil ~ ., col = "red", main = "Boxplot sem os outliers na saída")
 
 ################ Nova Correlação ##########################
 
@@ -197,7 +206,7 @@ boxplot(data[, -1], Demanda_uni_equil ~ ., col = "green", main = "Boxplot sem os
 # Kendall - teste não paramétrico, para medir a força de dependência entre duas variaveis
 
 # Vetor com os métodos de correlação
-metodos <- c("pearson", "spearman")
+metodos <- c("Pearson", "spearman")
 
 
 # Aplicando os métodos de correlação com a função cor()
