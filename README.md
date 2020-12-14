@@ -300,6 +300,7 @@ Para ilustrar a influência dos *outliers* na correlação entre os dados, foram
 ![Figura 13 - Gráfico de correlação com método Pearson sem outliers](img/corr_1_sem_outliers.png)
 ![Figura 14 - Gráfico de correlação com método Spearman sem outliers](img/corr_2_sem_outliers.png)
 
+#### Experimento 1
 Ainda com os *outliers* excluídos foram comparados 2 modelos de regressão para os dados: a regressão de Poisson e o algortimo de regressão *Boosted Decision Tree*. Os resultados podem ser vistos a seguir:
 ![Figura 12 - Modelo1-AzureML](img/modelo1.0_azure.JPG)
 ![Figura 13 - Modelo1-AzureML](img/modelo1.1_azure.JPG)
@@ -307,15 +308,29 @@ Ainda com os *outliers* excluídos foram comparados 2 modelos de regressão para
 
 Pode-se observar que o coeficiente de determinação R² aumentou para 0,284093, porém ainda é um número considerado baixo, de modo que o processo de *data munging* será continuado.
 
-Alternativamente, foi rodado novamente o experimento no AzureML com um *feature selection* das 4 variáveis mais importantes sem a exclusão dos *outliers*, conforme mostrado abaixo, de onde se pode ver que houve um aumento do R².
+#### Experimento 2
+Alternativamente, o experimento foi refeito no AzureML com um *feature selection* das 4 variáveis mais importantes sem a exclusão dos *outliers*, conforme mostrado abaixo, de onde se pode ver que houve um aumento do R².
 ![Figura 15 - Modelo2-AzureML](img/modelo2.0_azure_grif.JPG)
 ![Figura 16 - Modelo2-AzureML](img/modelo2.1_azure_grif.JPG)
 
-Também foi refeito o mesmo experimento com a exclusão apenas dos *ouliers* da variável target, eliminando aproximadamente 13% dos dados de treinamento, o que causou uma diminuição do coeficiente de determinação, conforme mostrado a seguir:
+#### Experimento 3
+O mesmo experimento anterior com a exclusão apenas dos *ouliers* da variável target, eliminando aproximadamente 13% dos dados de treinamento, o que causou uma diminuição do coeficiente de determinação, conforme mostrado a seguir:
 ![Figura 17 - Modelo3-AzureML](img/modelo3.0_azure.JPG)
 ![Figura 18 - Modelo3-AzureML](img/modelo3.1_azure_grif.JPG)
 Ou seja, mesmo com uma exclusão de um número menor de dados *outliers*, houve uma perda na capacidade de generalização do modelo gerado.
 
-Após isso, dado o resultado do último experimento, resolveu-se testar o desempenho sem retirada dos *outliers* e também sem a normalização. A resultado é mostrado abaixo:
+#### Experimento 4
+Dado o resultado do último experimento, resolveu-se testar o desempenho sem retirada dos *outliers* e também sem a normalização. A resultado é mostrado abaixo:
 ![Figura 19 - Modelo4-AzureML](img/modelo4.0_azure.JPG)
 ![Figura 20 - Modelo4-AzureML](img/modelo4.1_azure_grif.JPG)
+
+#### Experimento 5
+Com as mesmas premissas do experimento 4, foi introduzido um modelo de rede neural com 1000 nós ocultos e observou-se os seguintes resultados:
+![Figura 21 - Modelo5-AzureML](img/modelo5.0_azure.JPG)
+![Figura 22 - Modelo5-AzureML](img/modelo5.1_azure.JPG)
+
+#### Experimento 6
+Como o resultado apresentado pelo modelo de rede neural foi bem aquém do que acredita-se que este modelo pode entregar, foram acrescentados os módulos *Tune Model Hyperparameters* para procurar otimizações de parâmetros tanto no modelo de redes neurais quanto no modelo *Boosted Decision Tree Regression*, que foi o modelo que melhor descreve o conjunto de dados até agora. Os resultados são mostrados na figura a seguir:
+![Figura 23 - Modelo6-AzureML](img/modelo6.0_azure.JPG)
+![Figura 24 - Modelo6-AzureML](img/modelo6.1_azure.JPG)
+Nota-se que o ajuste de hiperparâmetros não melhorou significativamente o desempenho do modelo de regressão de rede neural para que pudesse ser considerado como uma boa solução para o problema, ao passo que melhorou o desempenho do modelo *Boosted Decision Tree Regression*.
