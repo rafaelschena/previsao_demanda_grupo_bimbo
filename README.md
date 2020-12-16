@@ -1,5 +1,5 @@
 # Previsão de demanda - Grupo Bimbo
-Projeto 2 do Curso Big Data Analytics
+#### Projeto 2 do Curso Big Data Analytics com R e Microsoft Azure Machine Learning da Data Science Academy
 
 ## Introdução
 
