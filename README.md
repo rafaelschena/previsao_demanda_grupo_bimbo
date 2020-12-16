@@ -1,4 +1,5 @@
 # Previsão de demanda - Grupo Bimbo
+Projeto 2 do Curso Big Data Analytics
 
 ## Introdução
 
@@ -43,7 +44,7 @@ Demanda_uni_equil — Demanda ajustada em unidades (integer) (Esta é a variáve
 
 
 
-### Análise exploratória de dados
+## Análise exploratória de dados
 
 ```{r}
 ##################################################################
@@ -300,6 +301,9 @@ Para ilustrar a influência dos *outliers* na correlação entre os dados, foram
 ![Figura 13 - Gráfico de correlação com método Pearson sem outliers](img/corr_1_sem_outliers.png)
 ![Figura 14 - Gráfico de correlação com método Spearman sem outliers](img/corr_2_sem_outliers.png)
 
+
+## Modelos de Machine Learning
+
 #### Experimento 1
 Ainda com os *outliers* excluídos foram comparados 2 modelos de regressão para os dados: a regressão de Poisson e o algortimo de regressão *Boosted Decision Tree*. Os resultados podem ser vistos a seguir:
 ![Figura 12 - Modelo1-AzureML](img/modelo1.0_azure.JPG)
@@ -309,7 +313,7 @@ Ainda com os *outliers* excluídos foram comparados 2 modelos de regressão para
 Pode-se observar que o coeficiente de determinação R² aumentou para 0,284093, porém ainda é um número considerado baixo, de modo que o processo de *data munging* será continuado.
 
 #### Experimento 2
-Alternativamente, o experimento foi refeito no AzureML com um *feature selection* das 4 variáveis mais importantes sem a exclusão dos *outliers*, conforme mostrado abaixo, de onde se pode ver que houve um aumento do R².
+Alternativamente, o experimento foi refeito no Azure ML com um *feature selection* das 4 variáveis mais importantes sem a exclusão dos *outliers*, conforme mostrado abaixo, de onde se pode ver que houve um aumento do R².
 ![Figura 15 - Modelo2-AzureML](img/modelo2.0_azure_grif.JPG)
 ![Figura 16 - Modelo2-AzureML](img/modelo2.1_azure_grif.JPG)
 
@@ -323,6 +327,7 @@ Ou seja, mesmo com uma exclusão de um número menor de dados *outliers*, houve 
 Dado o resultado do último experimento, resolveu-se testar o desempenho sem retirada dos *outliers* e também sem a normalização. A resultado é mostrado abaixo:
 ![Figura 19 - Modelo4-AzureML](img/modelo4.0_azure.JPG)
 ![Figura 20 - Modelo4-AzureML](img/modelo4.1_azure_grif.JPG)
+Cosntata-se que o modelo *Boosted Decision Tree Regression* é relativamente robusto à presença de outliers e também aos dados não-normalizados, de modo que deste ponto em diante, estes pré-processamentos não serão executados.
 
 #### Experimento 5
 Com as mesmas premissas do experimento 4, foi introduzido um modelo de rede neural com 1000 nós ocultos e observou-se os seguintes resultados:
@@ -334,3 +339,85 @@ Como o resultado apresentado pelo modelo de rede neural foi bem aquém do que ac
 ![Figura 23 - Modelo6-AzureML](img/modelo6.0_azure.JPG)
 ![Figura 24 - Modelo6-AzureML](img/modelo6.1_azure.JPG)
 Nota-se que o ajuste de hiperparâmetros não melhorou significativamente o desempenho do modelo de regressão de rede neural para que pudesse ser considerado como uma boa solução para o problema, ao passo que melhorou o desempenho do modelo *Boosted Decision Tree Regression*.
+
+#### Experimento 7
+Neste experimento, foi substituído o módulo de rede neural pelo módulo *Decision Forest Regression*, para comparar o seu desempenho com o modelo *Boosted Decision Tree Regression*. Após 24 horas de treinamento o Azure ML interrompeu o treinamento do modelo, e não foi possível a comparação dos resultados obtidos.
+
+
+### Resultados finais
+Feitos todos os testes possíveis com os algoritmos disponíveis na plataforma Azure ML, foi escolhido o algoritmo *Boosted Decision Tree Regression* para uma primeira versão do modelo.
+
+Após isto, este modelo foi colocado em produção para fazer a previsão em um conjunto de dados de teste disponiblizado pelo *Kaggle*.
+![Figura 23 - ModeloProducao](img/Modelo_producao.JPG)
+
+Para gerar o arquivo de submissão foi necessária ainda uma última manipulação de dados para que estes fossem entregues no formato solicitado pela plataforma. Tal manipulação é mostrada no código que se segue:
+
+```{r}
+
+##################################################################
+######### Projeto 2 - Previsão de demanda - Grupo Bimbo ##########
+############### Formatação dados de saída ########################
+##################################################################
+
+Azure <- FALSE
+
+if(!Azure){
+  
+  setwd("C:/DataScience/FCD/BigDataAnalytics-R-Azure/Projeto-2/previsao_demanda_grupo_bimbo/")
+  getwd()
+  
+}
+
+
+############################################################
+#### Carregamento de dados e bibliotecas ###################
+############################################################
+
+if(Azure){
+  
+  pred <- maml.mapInputPort(1) # class: data.frame
+  test <- maml.mapInputPort(2) # class: data.frame
+  
+}else{
+  
+  library(readr)
+ 
+  test <- read_csv("dados/test.csv")
+  pred <- read_csv("dados/test.csv") # apenas para teste da saída formatada
+  test$Semana <- NULL
+  test$Agencia_ID <- NULL
+}
+
+# Aqui presume-se que, caso este código seja rodado fora do AzureML, o dataset pred
+# já tenha sido gerado com as predições do modelo com os labels na sua última coluna
+
+saida <- as.data.frame(cbind(test$id, pred[[ncol(pred)]]))
+colnames(saida) <- c("id", "Demanda_uni_equil")
+
+saida$Demanda_uni_equil[saida$Demanda_uni_equil < 0] <- 0
+
+
+############### Saída do bloco ########################
+
+if(Azure){
+  maml.mapOutputPort("saida");
+}
+
+``` 
+
+O modelo está disponível na galeria do Azure ML no seguinte endereço:
+https://gallery.cortanaintelligence.com/Experiment/Previs-o-de-demanda-Grupo-Bimbo-Produ-o-Predictive-Exp
+
+## Conclusões
+
+O dataset mostrou-se bastante pesado para que o projeto fosse executado na máquina local, de modo que para que alguns testes fossem rodados localmente, foi necessário fazer um *sampling* do dataset original de 1/10. Devido a esta restrição, escolheu-se a plataforma Azure ML para execução em nuvem.
+
+Neste projeto para previsão de demanda foram testados os modelos de machine learning para regressão disponíveis no Azure ML, bem como algumas técnicas de limpeza e tratamento dos dados de entrada em linguagem R. Quanto a estas, mais especificamente as técnicas de normalização, fatorização e exclusão de *outliers*, pode-se dizer que não se fizeram necessárias, uma vez que o melhor modelo testado (*Boosted Decision Tree*) mostrou-se robusto a todas elas.
+
+O único processo testado de *data munging* que surtiu resultado positivo na predição foi a seleção de variáveis, de onde foram extraídas as 4 variáveis que mais influenciavam o *target*, através do método de *Spearman* no módulo *Filter Based Feature Selection*. O resultado final atingido foi um coeficiente de determinação (R²) de 0.354839, o que indica que ainda há uma boa margem de melhoria no modelo de regressão.
+
+### Pontos de melhorias para futuras versões deste trabalho
+
+Por fim, como possíveis pontos de melhoria para futuras versões do presente trabalho, indica-se um aprofundamento no processo de *data munging*, testando outras técnicas para poder extrair mais informação e menos ruído dos dados de entrada.
+
+Seria dado também um grande salto operacional ao se optar por trabalhar em um ambiente em nuvem onde pudessem ser instalados mais pacotes de machine learning da linguagem R e não houvesse as limitações da versão gratuita do Azure ML. Desta forma, acredita-se que seriam eliminadas grande parte das restrições computacionais locais e ao mesmo tempo o trabalho não ficaria restrito aos modelos de *machine learning* que foram testados.
